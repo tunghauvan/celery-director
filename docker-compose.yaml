@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:6.0.9
+  
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: director celery worker --loglevel=INFO 
+    environment:
+      - DIRECTOR_HOME=/workflows/
+      - DIRECTOR_DATABASE_URI=sqlite:////workflows/db.sqlite3
+      - DIRECTOR_HOME_WORKFLOW=/test/workflows.yml
+    volumes:
+      - ./volumes/workflows:/workflows
+      - ./volumes/test:/test

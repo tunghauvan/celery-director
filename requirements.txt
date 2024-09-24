@@ -1,0 +1,29 @@
+# Celery Packages
+celery==5.2.6
+flower==1.2.0
+kombu==5.2.4
+
+# Databases
+psycopg2-binary==2.9.9
+SQLAlchemy==1.4.44
+sqlalchemy-utils==0.38.3
+mysql-connector-python==8.0.31
+redis==4.2.2
+alembic==1.8.1
+
+# Flask
+Flask==2.1.1
+Flask-SQLAlchemy==2.5.1
+Flask-json-schema==0.0.5
+Flask-Migrate==3.1.0
+Flask-HTTPAuth==4.5.0
+Werkzeug==2.2.3
+
+# Misc
+gunicorn==20.0.4
+environs==9.5.0
+pyyaml==5.4.1
+terminaltables==3.1.0
+pluginbase==1.0.0
+sentry-sdk==0.16.3
+importlib-metadata==4.13.0
