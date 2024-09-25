@@ -3,7 +3,18 @@ version: '3.8'
 services:
   redis:
     image: redis:6.0.9
+    ports:
+      - "6379:6379"
   
+  postgres:
+    image: postgres:12.4
+    environment:
+      POSTGRES_USER: director
+      POSTGRES_PASSWORD: director
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+
   worker:
     build:
       context: .
@@ -11,8 +22,39 @@ services:
     command: director celery worker --loglevel=INFO 
     environment:
       - DIRECTOR_HOME=/workflows/
-      - DIRECTOR_DATABASE_URI=sqlite:////workflows/db.sqlite3
+      - DIRECTOR_DATABASE_URI=postgresql://director:director@postgres:5432/postgres
       - DIRECTOR_HOME_WORKFLOW=/test/workflows.yml
     volumes:
       - ./volumes/workflows:/workflows
       - ./volumes/test:/test
+  
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: director webserver -b 0.0.0.0
+    ports:
+      - "8000:8000"
+    environment:
+      - DIRECTOR_HOME=/workflows/
+      - DIRECTOR_DATABASE_URI=postgresql://director:director@postgres:5432/postgres
+      - DIRECTOR_HOME_WORKFLOW=/test/workflows.yml
+    volumes:
+      - ./volumes/workflows:/workflows
+      - ./volumes/test:/test
+
+  flower:
+    image: mher/flower
+    container_name: flower
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/3
+      - FLOWER_PORT=5555
+      - FLOWER_PERSISTENT=True
+      - FLOWER_STATE_SAVE_INTERVAL=10000
+      - FLOWER_DB=/etc/db/flower.db
+    ports:
+      - "5555:5555"
+    volumes:
+      - ./volumes/flower/storage:/etc/db/
+    depends_on:
+      - redis

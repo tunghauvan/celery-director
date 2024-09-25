@@ -1,5 +1,6 @@
 # sdk/workflow.py
 
+import time
 from director import create_app
 from director.models.workflows import Workflow
 from director.extensions import cel_workflows
@@ -111,6 +112,10 @@ class WorkflowSDK:
         data = obj.to_dict()
         workflow = WorkflowBuilder(obj.id)
         workflow.run()
+        
+        # while True:
+        #     print(f"Workflow status: {workflow.status()}")
+        #     time.sleep(1)
 
         app.logger.info(f"Workflow sent : {workflow.canvas}")
 
@@ -120,7 +125,7 @@ class WorkflowSDK:
 if __name__ == '__main__':
     app = create_app()
     sdk = WorkflowSDK()
-    sdk.create_workflow('example', 'RANDOMS_V2', {'tasks': ['RANDOM']})
+    sdk.create_workflow('example', 'RANDOMS_V2', {'tasks': ['RANDOM', 'RANDOM', 'RANDOM']})
     print('-'*80)
     for wf in sdk.list_workflows():
         print("Workflow: name={}, payload={}".format(list(wf.keys())[0], list(wf.values())[0]))

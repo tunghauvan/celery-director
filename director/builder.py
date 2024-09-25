@@ -1,5 +1,8 @@
+import time
+import logging
 from celery import chain, group
 from celery.utils import uuid
+from celery.exceptions import SoftTimeLimitExceeded
 
 from director.exceptions import WorkflowSyntaxError
 from director.extensions import cel, cel_workflows
@@ -7,7 +10,9 @@ from director.models import StatusType
 from director.models.tasks import Task
 from director.models.workflows import Workflow
 from director.tasks.workflows import start, end, failure_hooks_launcher
+from celery.utils.log import get_task_logger
 
+logger = get_task_logger(__name__)
 
 class WorkflowBuilder(object):
     def __init__(self, workflow_id):
@@ -45,6 +50,7 @@ class WorkflowBuilder(object):
             kwargs={"workflow_id": self.workflow_id, "payload": self.workflow.payload},
             queue=queue,
             task_id=task_id,
+            soft_time_limit=5  # Set a soft time limit of 30 seconds
         )
 
         # Director task has the same UID
@@ -100,6 +106,9 @@ class WorkflowBuilder(object):
         self.canvas.insert(0, start.si(self.workflow.id).set(queue=self.queue))
         self.canvas.append(end.si(self.workflow.id).set(queue=self.queue))
 
+        for i, task in enumerate(self.canvas):
+            print(f"Task {i}: {task}")
+
     def build_hooks(self):
         initial_previous = self.previous
 
@@ -133,11 +142,16 @@ class WorkflowBuilder(object):
                 link=self.success_hook_canvas,
                 link_error=self.failure_hook_canvas,
             )
-
         except Exception as e:
             self.workflow.status = StatusType.error
             self.workflow.save()
             raise e
+        finally:
+            clean_up.si(self.workflow.id).apply_async()
+
+    def status(self):
+        print("Get workflow status, id:", self.workflow_id)
+        return Workflow.query.filter_by(id=self.workflow_id).first().to
 
     def cancel(self):
         status_to_cancel = set([StatusType.pending, StatusType.progress])
@@ -148,3 +162,17 @@ class WorkflowBuilder(object):
                 task.save()
         self.workflow.status = StatusType.canceled
         self.workflow.save()
+
+from celery import shared_task
+
+@shared_task
+def clean_up(workflow_id):
+    workflow = Workflow.query.filter_by(id=workflow_id).first()
+    status_to_cancel = set([StatusType.pending, StatusType.progress])
+    for task in workflow.tasks:
+        if task.status in status_to_cancel:
+            cel.control.revoke(task.id, terminate=True)
+            task.status = StatusType.canceled
+            task.save()
+    workflow.status = StatusType.canceled
+    workflow.save()

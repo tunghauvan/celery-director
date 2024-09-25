@@ -136,9 +136,9 @@ class FlaskCelery(Celery):
         self.app = app
         self.conf.update(app.config.get("CELERY_CONF", {}))
         
-        # Set task timeout
-        task_timeout = app.config.get("CELERY_TASK_TIME_LIMIT", 300)  # Default to 300 seconds
-        self.conf.task_time_limit = task_timeout
+        # # Set task timeout
+        # task_timeout = app.config.get("CELERY_TASK_TIME_LIMIT", 300)  # Default to 300 seconds
+        # self.conf.task_time_limit = task_timeout
 
 
 # Sentry Extension

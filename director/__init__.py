@@ -42,7 +42,8 @@ class DirectorFlask(Flask):
 
 # Create the application using a factory
 def create_app(
-    home_path=os.getenv("DIRECTOR_HOME"), config_path=os.getenv("DIRECTOR_CONFIG")
+    home_path=os.getenv("DIRECTOR_HOME"), 
+    config_path=os.getenv("DIRECTOR_CONFIG")
 ):
     app = DirectorFlask(__name__)
     c = Config(home_path, config_path)
