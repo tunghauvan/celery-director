@@ -27,3 +27,8 @@ celerybeat-schedule.db
 
 # Docs
 docs/site/
+
+# Examples
+examples/postgres/
+examples/flower/
+examples/test/

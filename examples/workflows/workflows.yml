@@ -1,0 +1,13 @@
+example.ETL:
+  tasks:
+  - EXTRACT
+  - TRANSFORM
+  - LOAD
+example.RANDOMS:
+  tasks:
+  - GROUP_RANDOMS:
+      tasks:
+      - RANDOM
+      - RANDOM
+      type: group
+  - ADD
