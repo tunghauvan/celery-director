@@ -15,6 +15,7 @@ from celery.utils.log import get_task_logger
 
 logger = get_task_logger(__name__)
 
+
 class WorkflowBuilder(object):
     def __init__(self, workflow_id):
         self.workflow_id = workflow_id
@@ -51,7 +52,7 @@ class WorkflowBuilder(object):
             kwargs={"workflow_id": self.workflow_id, "payload": self.workflow.payload},
             queue=queue,
             task_id=task_id,
-            soft_time_limit=5  # Set a soft time limit of 30 seconds
+            soft_time_limit=5,  # Set a soft time limit of 30 seconds
         )
 
         # Director task has the same UID
@@ -128,6 +129,11 @@ class WorkflowBuilder(object):
             self.previous = None
             self.success_hook_canvas = [self.parse([self.success_hook], True)[0]]
 
+        # clean up
+        self.clean_up_hook_canvas = [
+            clean_up.si(self.workflow_id).set(queue=self.queue)
+        ]
+
         self.previous = initial_previous
 
     def run(self):
@@ -140,15 +146,13 @@ class WorkflowBuilder(object):
 
         try:
             return canvas.apply_async(
-                link=self.success_hook_canvas,
-                link_error=self.failure_hook_canvas,
+                link=self.success_hook_canvas + self.clean_up_hook_canvas,
+                link_error=self.failure_hook_canvas + self.clean_up_hook_canvas,
             )
         except Exception as e:
             self.workflow.status = StatusType.error
             self.workflow.save()
             raise e
-        finally:
-            clean_up.si(self.workflow.id).apply_async()
 
     def status(self):
         print("Get workflow status, id:", self.workflow_id)
@@ -169,15 +173,15 @@ class WorkflowBuilder(object):
 def clean_up(workflow_id):
     workflow = Workflow.query.filter_by(id=workflow_id).first()
     # Get the error task
-    error_task = Task.query.filter_by(workflow_id=workflow_id, status=StatusType.error).first()
+    error_task = Task.query.filter_by(
+        workflow_id=workflow_id, status=StatusType.error
+    ).first()
     status_to_cancel = set([StatusType.pending, StatusType.progress])
     for task in workflow.tasks:
+        print("Task Name: {}, Task Status: {}".format(task.key, task.status))
         # skip the error task
         if error_task and task.id == error_task.id:
             continue
         if task.status in status_to_cancel:
-            cel.control.revoke(task.id, terminate=True)
             task.status = StatusType.canceled
             task.save()
-    workflow.status = StatusType.canceled
-    workflow.save()

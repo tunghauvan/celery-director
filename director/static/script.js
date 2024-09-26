@@ -191,7 +191,7 @@ Vue.filter("statusColor", function (status) {
   } else if (status == "error") {
     return "#f44336";
   } else if (status == "canceled") {
-    return "#b71c1c";
+    return "#ff9800";
   } else if (status == "progress") {
     return "#2196f3";
   } else {
@@ -322,7 +322,7 @@ new Vue({
       var color = {
         success: "green",
         error: "red",
-        canceled: "red darken-4",
+        canceled: "orange",
         warning: "orange",
         progress: "blue",
       }[status];
