@@ -3,6 +3,8 @@ import time
 from celery.utils.log import get_task_logger
 from celery import chain
 from celery.utils import uuid
+from celery.exceptions import SoftTimeLimitExceeded
+
 
 
 from director.extensions import cel
@@ -52,7 +54,7 @@ def mark_as_canceled_pending_tasks(workflow_id):
         task.save()
 
 
-@cel.task()
+@cel.task(soft_time_limit=30)  # Set a soft time limit of 30 seconds (5 minutes)
 def failure_hooks_launcher(workflow_id, queue, tasks_names, payload):
     canvas = []
 
@@ -63,6 +65,7 @@ def failure_hooks_launcher(workflow_id, queue, tasks_names, payload):
         signature = cel.tasks.get(task_name).subtask(
             kwargs={"workflow_id": workflow_id, "payload": payload},
             task_id=task_id,
+            soft_time_limit=30  # Set a soft time limit for each task
         )
 
         # Director task has the same UID
@@ -83,14 +86,21 @@ def failure_hooks_launcher(workflow_id, queue, tasks_names, payload):
 
     try:
         result.get()
-    except Exception:
+    except SoftTimeLimitExceeded:
+        # Set the workflow status to error
+        workflow = Workflow.query.filter_by(id=workflow_id).first()
+        workflow.status = StatusType.error
+        workflow.save()
+        logger.error("Task exceeded the time limit and was terminated.")
+        # Handle the timeout, e.g., mark tasks as canceled
+        task_id = uuid()
+        signature_mark_as_canceled = cel.tasks.get(
+            "director.tasks.workflows.mark_as_canceled_pending_tasks"
+        ).subtask(
+            args=(workflow_id,),
+            task_id=task_id,
+        )
+        signature_mark_as_canceled.apply_async()
+    except Exception as e:
+        logger.error(f"An error occurred: {e}")
         pass
-
-    task_id = uuid()
-    signature_mark_as_canceled = cel.tasks.get(
-        "director.tasks.workflows.mark_as_canceled_pending_tasks"
-    ).subtask(
-        args=(workflow_id,),
-        task_id=task_id,
-    )
-    signature_mark_as_canceled.apply_async()
