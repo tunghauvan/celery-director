@@ -4,19 +4,25 @@ from director import task
 
 @task(name="EXTRACT")
 def extract(*args, **kwargs):
-    raise Exception("Error extracting data")
-    for i in range(100):
-        time.sleep(5)
-        print("Elapsed time: {}".format(i*5))
-    print("Extracting data")
+    extract.logger.info("Extracting data")
+    
+    # raise Exception("Error extracting data")
+    for i in range(10):
+        time.sleep(1)
+        extract.logger.info("Elapsed time: {}".format(i*1))
+    extract.logger.info("Extracting data")
 
 
 @task(name="TRANSFORM")
 def transform(*args, **kwargs):
-    print("Transforming data")
+    transform.logger.info("Transforming data")
+    
 
 
 @task(name="LOAD")
 def load(*args, **kwargs):
-    print("Loading data")
+    load.logger.info("Loading data")
+    for i in range(10):
+        time.sleep(1)
+        load.logger.info("Elapsed time: {}".format(i*5))
 

@@ -3,6 +3,8 @@ example.ETL:
   - EXTRACT
   - TRANSFORM
   - LOAD
+  timeout: 60 # 60 seconds
+
 example.RANDOMS:
   tasks:
   - GROUP_RANDOMS:
@@ -11,3 +13,8 @@ example.RANDOMS:
       - RANDOM
       type: group
   - ADD
+
+example.PIPELINE:
+  tasks:
+  - name: Build
+    script: echo "Building..."

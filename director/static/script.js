@@ -297,6 +297,10 @@ new Vue({
     selectedStatus: [],
     status: ["success", "error", "progress", "pending", "canceled"],
     selectedWorkflowName: "All",
+
+    // log dialog
+    logDialog: false,
+    logContent: "",
   }),
   mounted() {
     const theme = localStorage.getItem("dark_theme");
@@ -417,6 +421,19 @@ new Vue({
             (this.selectedRunningWorkflow = null), (this.isWorkflowRun = false)
           )
         );
+    },
+    showLog: function (taskId) {
+      axios
+        .get(`${API_URL}/tasks/${taskId}/log`)
+        .then((response) => {
+          this.logContent = response.data;
+          this.logDialog = true;
+        })
+        .catch((error) => {
+          console.error("Error fetching log:", error);
+          this.logContent = "Error fetching log.";
+          this.logDialog = true;
+        });
     },
   },
   watch: {

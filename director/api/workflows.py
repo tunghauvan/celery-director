@@ -9,7 +9,7 @@ from director.api import api_bp, validate
 from director.auth import auth
 from director.builder import WorkflowBuilder
 from director.exceptions import WorkflowNotFound
-from director.extensions import cel_workflows, schema
+from director.extensions import cel_workflows, schema, cel_minio
 from director.models.workflows import Workflow
 from director.utils import build_celery_schedule
 
@@ -140,3 +140,9 @@ def list_definitions():
             {"fullname": fullname, "project": project, "name": name, **definition}
         )
     return jsonify(workflow_definitions)
+
+@api_bp.route("/tasks/<task_id>/log")
+@auth.login_required
+def get_task_logs(task_id):
+    log_file = cel_minio.get_raw(f"logs/{task_id}.log")
+    return log_file.read()

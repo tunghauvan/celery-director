@@ -6,7 +6,6 @@ from celery.utils import uuid
 from celery.exceptions import SoftTimeLimitExceeded
 
 
-
 from director.extensions import cel
 from director.models import StatusType
 from director.models.workflows import Workflow
@@ -65,7 +64,7 @@ def failure_hooks_launcher(workflow_id, queue, tasks_names, payload):
         signature = cel.tasks.get(task_name).subtask(
             kwargs={"workflow_id": workflow_id, "payload": payload},
             task_id=task_id,
-            soft_time_limit=30  # Set a soft time limit for each task
+            soft_time_limit=30,  # Set a soft time limit for each task
         )
 
         # Director task has the same UID

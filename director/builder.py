@@ -21,6 +21,8 @@ class WorkflowBuilder(object):
         self.workflow_id = workflow_id
         self._workflow = None
 
+        self.workflow_timeout = cel_workflows.get_timeout(str(self.workflow))
+
         self.queue = cel_workflows.get_queue(str(self.workflow))
         self.custom_queues = {}
 
@@ -52,7 +54,7 @@ class WorkflowBuilder(object):
             kwargs={"workflow_id": self.workflow_id, "payload": self.workflow.payload},
             queue=queue,
             task_id=task_id,
-            soft_time_limit=5,  # Set a soft time limit of 30 seconds
+            soft_time_limit=self.workflow_timeout,
         )
 
         # Director task has the same UID

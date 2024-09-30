@@ -24,6 +24,12 @@ class Config(object):
 
         env_path = Path(home_path) / ".env"
         self.DIRECTOR_HOME = str(home_path)
+        
+        self.CELERYD_LOG_DIR = str(Path(self.DIRECTOR_HOME) / "logs")
+        
+        # create the logs directory if it does not exist
+        if not Path(self.CELERYD_LOG_DIR).exists():
+            Path(self.CELERYD_LOG_DIR).mkdir()
 
         if config_path:
             if not Path(config_path).resolve().exists():
@@ -79,6 +85,13 @@ class Config(object):
 
         # Enable Vue debug loading vue.js instead of vue.min.js
         self.VUE_DEBUG = env.bool("DIRECTOR_VUE_DEBUG", False)
+        
+        # Minio configuration
+        self.MINIO_ENDPOINT = env.str("DIRECTOR_MINIO_ENDPOINT", "")
+        self.MINIO_ACCESS_KEY = env.str("DIRECTOR_MINIO_ACCESS_KEY", "")
+        self.MINIO_SECRET_KEY = env.str("DIRECTOR_MINIO_SECRET_KEY", "")
+        self.MINIO_BUCKET_NAME = env.str("DIRECTOR_MINIO_BUCKET", "")
+        self.MINIO_SECURE = env.bool("DIRECTOR_MINIO_SECURE", False)
 
 
 class UserConfig(dict):

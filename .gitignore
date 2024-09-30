@@ -1,6 +1,7 @@
 # Python
 __pycache__/
 venv/
+.venv/
 *.pyc
 
 # Build
@@ -32,3 +33,5 @@ docs/site/
 examples/postgres/
 examples/flower/
 examples/test/
+examples/minio/
+*.log

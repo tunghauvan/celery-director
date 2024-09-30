@@ -9,7 +9,7 @@ from flask import Flask, Blueprint, jsonify, request, render_template
 from werkzeug.exceptions import HTTPException
 
 from director.api import api_bp
-from director.extensions import cel, cel_workflows, db, schema, sentry, migrate
+from director.extensions import cel, cel_workflows, db, schema, sentry, migrate, cel_minio
 from director.settings import Config, UserConfig
 from director.tasks.base import BaseTask
 from director.utils import build_celery_schedule
@@ -80,6 +80,7 @@ def create_app(
     cel.init_app(app)
     cel_workflows.init_app(app)
     sentry.init_app(app)
+    cel_minio.init_app(app)
 
     # Dict passed to the cleanup function
     retentions = {}

@@ -1,4 +1,3 @@
-import imp
 import json
 from pathlib import Path
 from json.decoder import JSONDecodeError
@@ -14,6 +13,9 @@ from sqlalchemy.schema import MetaData
 from sentry_sdk.integrations import celery as sentry_celery
 from sentry_sdk.utils import capture_internal_exceptions
 from celery.exceptions import SoftTimeLimitExceeded
+
+from minio import Minio
+from minio.error import S3Error
 
 from director.exceptions import SchemaNotFound, SchemaNotValid, WorkflowNotFound
 
@@ -60,6 +62,13 @@ class CeleryWorkflow:
             return self.get_by_name(name)["queue"]
         except KeyError:
             return "celery"
+        
+    def get_timeout(self, name):
+        try:
+            return self.get_by_name(name)["timeout"]
+        except KeyError:
+            # Default timeout 60 minutes
+            return 3600
 
     def import_user_tasks(self):
         self.plugin_base = PluginBase(package="director.foobar")
@@ -114,6 +123,48 @@ class FlaskCelery(Celery):
     def init_app(self, app):
         self.app = app
         self.conf.update(app.config.get("CELERY_CONF", {}))
+        
+        
+# Minio Extension
+class MinioClient:
+    def __init__(self):
+        self.client = None
+
+    def init_app(self, app):
+        if app.config["MINIO_ENDPOINT"]:
+            self.client = Minio(
+                app.config["MINIO_ENDPOINT"],
+                access_key=app.config["MINIO_ACCESS_KEY"],
+                secret_key=app.config["MINIO_SECRET_KEY"],
+                secure=app.config["MINIO_SECURE"],
+            )
+            
+            self.bucket_name = app.config["MINIO_BUCKET_NAME"]
+            
+            # Make the bucket if it doesn't exist.
+            found = self.client.bucket_exists(self.bucket_name)
+            if not found:
+                self.client.make_bucket(self.bucket_name)
+                print("Created bucket", self.bucket_name)
+            else:
+                print("Bucket", self.bucket_name, "already exists")
+            
+
+    def get_client(self):
+        return self.client
+    
+    def upload(self, file, object_name):
+        try:
+            self.client.fput_object(self.bucket_name, object_name, file)
+        except S3Error as e:
+            raise Exception(f"Minio error: {e}")
+        return object_name
+    
+    def get_raw(self, object_name):
+        try:
+            return self.client.get_object(self.bucket_name, object_name)
+        except S3Error as e:
+            raise Exception(f"Minio error: {e}")
 
 
 # Sentry Extension
@@ -207,8 +258,10 @@ db = SQLAlchemy(
         }
     )
 )
+    
 migrate = Migrate()
 schema = JsonSchema()
 cel = FlaskCelery("director")
 cel_workflows = CeleryWorkflow()
 sentry = DirectorSentry()
+cel_minio = MinioClient()
