@@ -1,20 +1,42 @@
 example.ETL:
   tasks:
-  - EXTRACT
-  - TRANSFORM
-  - LOAD
+    - EXTRACT
+    - TRANSFORM
+    - LOAD
   timeout: 60 # 60 seconds
 
 example.RANDOMS:
   tasks:
-  - GROUP_RANDOMS:
-      tasks:
-      - RANDOM
-      - RANDOM
-      type: group
-  - ADD
+    - GROUP_RANDOMS:
+        tasks:
+          - RANDOM
+          - RANDOM
+        type: group
+    - ADD
 
 example.PIPELINE:
+  timeout: 60
+  parameters:
+    - name: input
+      type: string
+      default: "default"
+  environment:
+    GLOBAL_VAR: "value"
   tasks:
-  - name: Build
-    script: echo "Building..."
+    - name: EXTRACT
+      retries: 3
+    - name: TRANSFORM
+      retries: 3
+      type: shell
+      command: echo "TRANSFORM"
+    - name: LOAD
+      retries: 3
+      type: shell
+      script: |
+        echo "LOAD"
+        echo "input: {{input}}"
+      environment:
+        ENV_VAR: "value"
+    - name: NOTIFY
+      type: shell
+      command: echo "NOTIFY"
